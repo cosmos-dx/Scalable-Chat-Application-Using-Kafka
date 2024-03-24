@@ -3,6 +3,7 @@ import { ChatContext } from './Context/ChatContext';
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MainPanel from './Pages/MainPanel/MainPanel';
+import Login from './Pages/Login/Login';
 
 function App() {
   const api = "http://localhost:4000";
@@ -18,7 +19,8 @@ function App() {
       <ChatContext.Provider value={{ api, store, updateStore, showSearchResult, setShowSearchResult }}>
         <Router>
           <Routes>
-            <Route path="/" element={<MainPanel />} /> 
+            <Route path="/" element={<Login />} /> 
+            <Route path="/mainpanel" element={<MainPanel />} />
           </Routes>
         </Router>
       </ChatContext.Provider>

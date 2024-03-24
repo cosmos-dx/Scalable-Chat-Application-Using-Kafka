@@ -21,6 +21,7 @@
 .chat-window {
     display: flex;
     flex: 1;
+    overflow: hidden;
 }
 
 .msg-lists {

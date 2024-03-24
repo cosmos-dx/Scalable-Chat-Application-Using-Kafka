@@ -5,41 +5,65 @@ import io from "socket.io-client";
 
 const MainPanel = () => {
   const { api } = useContext(ChatContext);
-  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [socket, setSocket] = useState(null);
   const [userId, setUserId] = useState("");
   const [totalmessages, setTotalmessages] = useState({ "group-chat": [] });
   const [currentUser, setCurrentUser] = useState("group-chat");
+  const [myusername, setMyusername] = useState("");
+  const [initialDataFetched, setinitialDataFetched] = useState(false);
+
   useEffect(() => {
+
+    if(localStorage.getItem('username') === null){
+
+      window.location.href = "/";
+    } 
     const newSocket = io(api);
     setSocket(newSocket);
-    newSocket.on("message", handleReceivedMessage);
-    newSocket.on("privateMessage",handleReceivedMessagePrivate );
-    newSocket.on("connect", () => {
+    const username = localStorage.getItem('username');
+    setMyusername(username);
+
+    newSocket.on('message', handleReceivedMessage);
+    newSocket.on('privateMessage', handleReceivedMessagePrivate);
+    newSocket.on('connect', () => {
       setUserId(newSocket.id);
+      newSocket.emit('setUsername', username);
     });
+    if(!initialDataFetched) {
+      fetchChatData(username);
+      setinitialDataFetched(true);
+    }
+    
     return () => {
       if (socket) {
         socket.disconnect();
       }
     };
   }, [api]);
-
+  const fetchChatData = async (username) => {
+    try {
+      const response = await fetch(`${api}/api/chat/${username}`);
+      const data = await response.json();
+      setTotalmessages(data);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+ 
   const handleReceivedMessage = (message) => {
-    setMessages((prevMessages) => [...prevMessages, message]);
     setTotalmessages((prevTotalMessages) => ({
       ...prevTotalMessages,
       "group-chat": [...(prevTotalMessages["group-chat"] || []), message],
     }));
   };
-  const handleReceivedMessagePrivate = (message) =>{
-    
+
+  const handleReceivedMessagePrivate = (message) => {
     setTotalmessages((prevTotalMessages) => ({
       ...prevTotalMessages,
       [message.senderId]: [...(prevTotalMessages[message.senderId] || []), message],
     }));
-  }
+  };
 
   const sendMessage = () => {
     if(currentUser !== 'group-chat'){
@@ -50,14 +74,15 @@ const MainPanel = () => {
           { senderId: "You", content: newMessage }
         ],
       }));
-      
     }
     if (newMessage.trim() !== "" && socket) {
-      const message = { senderId: userId, content: newMessage, receiverId: currentUser };
+      const message = { senderId: myusername, content: newMessage, username: currentUser };
       currentUser === 'group-chat' ? socket.emit("message", message) : socket.emit("privateMessage", message);
       setNewMessage("");
     }
   };
+
+
 
   const addChatUser = () => {
     const receiverSocket = prompt("Enter receiver's socket:");
@@ -90,7 +115,7 @@ const MainPanel = () => {
         </div>
         <div className="msg-window">
           <div className="header">
-            <h2>{userId}</h2>
+            <h2>{myusername}</h2>
           </div>
           <div className="messages-in-window">
             {totalmessages[currentUser] &&
